@@ -98,4 +98,46 @@ class Game extends React.Component {
     ... 
 }
 ```
+## 3. Rewrite Board to use two loops to make the squares instead of hardcoding them
 
+This one threw me for a bit of a loop (no pun intended) because at first blush it seemed to simply be a request to write a nested for loop that counted to 9. Admittedly, the final implementation of the code in question still resembles that, but it required a few iterations because I was (and still am) unsure of exactly how and when I can mix HTML into my javascript in React. Simply creating 9 squares via nested for-loops would create a single, horizontal line of squares on the page because I needed to intersperse them with a board-row div after every third square. So I plugged every three squares into a separate **row[]** array and went about Googling how to intersperse HTML in the middle of a for-loop. After some searching, I came to the solution below where I simply pushed the HTML into a **board[]** array, and relied on React to translate the **<div ...>** into the appropriate calls behind the scenes thanks to the magic(?) of JSX. 
+
+```javascript
+class Board extends React.Component {
+  ...
+  render() {
+    let board = [];
+    let squareNum = 0;
+    for (let rowNum = 0; rowNum <3; rowNum++){
+        let row = [];
+        for (let colNum = 0; colNum <3; colNum++){
+            row.push(this.renderSquare(squareNum));
+            squareNum++;
+        }
+        board.push(<div key={rowNum} className="board-row">{row}</div>);
+    }
+
+    return (
+        <div>
+            {board}
+        </div>
+    );
+  }
+}
+```
+
+Even though I had set a key for the elements in the **board[]** array, I was still getting an error in the console for missing keys. I realized that since the squares were now being generated programmatically rather than hardcoded, they now needed their own keys as well to prevent that error from showing up.
+
+```javascript
+class Board extends React.Component {
+  renderSquare(i) {
+    return (
+      <Square
+        value={this.props.squares[i]}
+        key={i}
+        onClick={() => this.props.onClick(i)}
+      />
+    );
+  }
+}
+```
