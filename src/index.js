@@ -51,6 +51,7 @@ class Game extends React.Component {
         }
       ],
       stepNumber: 0,
+      moveListAscending: true,
       xIsNext: true
     };
   }
@@ -84,25 +85,33 @@ class Game extends React.Component {
     });
   }
 
+  toggleListDirection() {
+    this.setState((state) => ({
+      moveListAscending: !state.moveListAscending,
+    }));
+  }
+
   render() {
     const history = this.state.history;
     const current = history[this.state.stepNumber];
     const winner = calculateWinner(current.squares);
 
-    const moves = history.map((step, move) => {
+    const moves = (this.state.moveListAscending ? history : history.slice().reverse() ).map((step, move) => {
       const squareClicked = step.squareClicked;
       const col = Math.floor(squareClicked / 3) + 1;
       const row = squareClicked%3 + 1;
 
-      const desc = move ?
-        'Go to move #' + move + " (" + col + ", " + row + ")":
+      const reversibleIndex = (this.state.moveListAscending ? move : (history.length-move)-1);
+
+      const desc = reversibleIndex ?
+        'Go to move #' + reversibleIndex + " (" + col + ", " + row + ")":
         'Go to game start';
 
       return (
-        <li key={move}>
+        <li key={reversibleIndex}>
           <button
-            onClick={() => this.jumpTo(move)}
-            style={ move === this.state.recentJumpIndex ? {fontWeight: 'bold'} : {fontWeight: 'normal'} }>
+            onClick={() => this.jumpTo(reversibleIndex)}
+            style={ reversibleIndex === this.state.recentJumpIndex ? {fontWeight: 'bold'} : {fontWeight: 'normal'} }>
               {desc}
           </button>
         </li>
@@ -126,6 +135,7 @@ class Game extends React.Component {
         </div>
         <div className="game-info">
           <div>{status}</div>
+          <button onClick={() => this.toggleListDirection()}>Asc/Desc</button>
           <ol>{moves}</ol>
         </div>
       </div>

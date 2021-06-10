@@ -2,7 +2,7 @@
 
 ## 1. Display the location for each move in the format (col, row) in the move history list.
 
-When creating the game board, each of the squares on the board is assigned a number of 0-9 via the **renderSquare(i)** function in the **Board**. class. Using a little bit of mathemagics, we can convert those numbers into their row/column equivalents. In order to extract those numbers for use on the jump buttons that show up below our status, we need to maintain a record (we'll call it **squareClicked**) in the state of the program of which button was clicked. This record should be maintained in each step of the history array, as maintaining the record in the Game's overall state would cause it to get rewritten on each move. We will want to record the index (i-value) during the Board's handleClick function which is called each time the user clicks the board.
+When creating the game board, each of the squares on the board is assigned a number of 0-9 via the **renderSquare(i)** function in the **Board**. class. Using a little bit of mathemagics, we can convert those numbers into their row/column equivalents. In order to extract those numbers for use on the jump buttons that show up below our status, we need to maintain a record (we'll call it **squareClicked**) in the state of the program of which button was clicked. This record should be maintained in each step of the **history[]** array, as maintaining the record in the Game's overall state would cause it to get rewritten on each move. We will want to record the index (i-value) during the Board's handleClick function which is called each time the user clicks the board.
 ```javascript
 class Game extends React.Component {
     ...
@@ -22,7 +22,7 @@ class Game extends React.Component {
 }
 ```
 
-Now, during the mapping over the history array which creates our historical jump-list, we can perform our mathemagics to get the 1-indexed row/col values and insert them into the button descriptions.
+Now, during the mapping over the **history[]** array which creates our historical jump-list, we can perform our mathemagics to get the 1-indexed row/col values and insert them into the button descriptions.
 
 ```javascript
 class Game extends React.Component {
@@ -77,9 +77,9 @@ class Game extends React.Component {
 }
 ```
 
-We create a state value called **recentJumpIndex** which is set equal to **step**(the index of our history array) when we click on one of the move list buttons. This can be used to indicate that a jump was made as the last button click, and it indicates the index to which the jump was made. When we click on the board again, we reset our **recentJumpIndex** to a value of -1, which obviously does not match the index of any move in our history array.
+We create a state value called **recentJumpIndex** which is set equal to **step**(the index of our **history[]** array) when we click on one of the move list buttons. This can be used to indicate that a jump was made as the last button click, and it indicates the index to which the jump was made. When we click on the board again, we reset our **recentJumpIndex** to a value of -1, which obviously does not match the index of any move in our **history[]** array.
 
-When rendering our jump menu, we will check via a ternary operator to see if **move**(confusingly, the tutorial has used "move" for the index and "step" for the name of the historical object/state during the mapping of the history array) is equal to the **recentJumpIndex** of the app, and if so then we will render that menu item with a bold font-weight via a style prop.
+When rendering our jump menu, we will check via a ternary operator to see if **move**(confusingly, the tutorial has used "move" for the index and "step" for the name of the historical object/state during the mapping of the **history[]** array) is equal to the **recentJumpIndex** of the app, and if so then we will render that menu item with a bold font-weight via a style prop.
 
 ```javascript
 class Game extends React.Component {
@@ -141,3 +141,78 @@ class Board extends React.Component {
   }
 }
 ```
+
+## 4. Add a toggle button that lets you sort the moves in either ascending or descending order.
+
+Starting from the top down, we'll first add a button which will trigger a function named **toggleListDirection()** which we will then implement. Our new function will serve simply to flip a state variable named **moveListAscending** (which we will default to *true* in the **Game** component's constructor) to the opposite of whatever its current value is. 
+
+```javascript
+class Game extends React.Component {
+  ...
+  toggleListDirection() {
+    this.setState({
+      moveListAscending: !this.state.moveListAscending,
+    });
+  }
+
+  render() {
+    ...
+    return (
+        ...
+        <div className="game-info">
+          <div>{status}</div>
+          <button onClick={() => this.toggleListDirection()}>Asc/Desc</button>
+          <ol>{moves}</ol>
+        </div>
+      </div>
+    );
+  }
+}
+```
+
+This seems to work in this case, but according to the React docs (https://reactjs.org/docs/state-and-lifecycle.html#state-updates-may-be-asynchronous) we should not rely on the previous state to calculate the state because state updates may be asynchronous. The tutorial had us do this up in the **handleClick(i)** function when calculating **xisNext**, but for the sake of correctness I will follow the recommendation of the React docs and utilize the secondary form of **setState()**.
+
+```javascript
+  toggleListDirection() {
+    this.setState((state) => ({
+      moveListAscending: !state.moveListAscending,
+    }));
+  }
+```
+
+Considering our problem, it seems like the simplest solution would be to simply reverse the array that forms the movelist during the **Game** component's **render()** function and allow the rendering process to proceed as normal. Following that train of thought, we would then consider that the generation of the movelist occurs by mapping over the **history[]** array and returning a list element for each element accessed in the array. Following the pattern of the tutorial, we want to minimize mutations to the **history[]** array, thus if our **moveListAscending** state variable is false, we will map over a **history.slice().reverse()** array instead. This way we will only be reversing a slice of our original array, and the expensive reverse function is only being called if the state variable is false.
+
+As a final step, we must accomodate for the fact that reversing our array before mapping over it results in the **move** variable (the index of the elements in our newly-mapped array) now being incorrect values when the list is reversed. Reversing the list for a game of N moves and clicking on the final move(move N) will still take you to game start (move 0). This is fixed by replacing functional references to the **move** variable with a new variable (**reversibleIndex** in my case) whose value is determined by another check to the value of **moveListAscending**.
+
+```javascript
+class Game extends React.Component {
+  ...
+  render() {
+    const history = this.state.history;
+    const current = history[this.state.stepNumber];
+    const winner = calculateWinner(current.squares);
+
+    const moves = (this.state.moveListAscending ? history : history.slice().reverse() ).map((step, move) => {
+      const squareClicked = step.squareClicked;
+      const col = Math.floor(squareClicked / 3) + 1;
+      const row = squareClicked%3 + 1;
+
+      const reversibleIndex = (this.state.moveListAscending ? move : (history.length-move)-1);
+
+      const desc = reversibleIndex ?
+        'Go to move #' + reversibleIndex + " (" + col + ", " + row + ")":
+        'Go to game start';
+
+      return (
+        <li key={reversibleIndex}>
+          <button
+            onClick={() => this.jumpTo(reversibleIndex)}
+            style={ reversibleIndex === this.state.recentJumpIndex ? {fontWeight: 'bold'} : {fontWeight: 'normal'} }>
+              {desc}
+          </button>
+        </li>
+      );
+    });
+    ...
+  }
+}
