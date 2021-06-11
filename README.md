@@ -216,3 +216,31 @@ class Game extends React.Component {
     ...
   }
 }
+```
+
+## 3. When someone wins, highlight the three squares that caused the win.
+
+In order to highlight squares which are populated by a text object (X or O) it seems reasonable that the best way to do that would be to change the color of the squares. In order to do that, we'll have to interact with the CSS files. So, in **index.css**, add the following class:
+
+```css
+.square.winner {
+    background: #ff0;
+}
+```
+
+The default implementation of **calculateWinner(squares)** as it is handed to us by the tutorial returns the value of one of the winning squares--that is, it returns either X or O and the status line in the **Game** component's **render()** function presents that text object as the winning player. Since the **calculateWinner(squares)** function already does the heavy lifting of determining when a player has won, there is no need to repeat the code done in that function. Instead, we will change the return value of the function so that it returns the indices of the winning squares. We can use these indices to apply the style we just added in the CSS file to the relevant squares, as well as to extract the character needed to report the winning player.
+
+```javascript
+function calculateWinner(squares) {
+  ...
+  for (let i = 0; i < lines.length; i++) {
+    const [a, b, c] = lines[i];
+    if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
+      return [a, b, c];
+    }
+  }
+  return [-1,-1,-1];
+}
+```
+
+
