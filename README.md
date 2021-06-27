@@ -317,3 +317,23 @@ class Board extends React.component {
 ```
 
 ## 6. When no one wins, display a message about the result being a draw.
+
+Supposedly these tasks were given in order of increasing difficulty, but this one was comparatively trivial. The conditions for a draw are that A) There is no winner and B) our board is full. We're already checking for a winner under the Status section, so all we need to do is add a check to see whether the board is full. If both of these conditions are false and true, respectively, then we have a draw and can update the status appropriately. All we need to do is remember that **current.squares** is an array and so long as it doesn't **.include()** a null value, then it is full.
+
+```javascript
+class Game extends React.Component{
+    ...
+    render(){
+        ...
+        let status;
+        if (winner[1]>0) {
+          status = "Winner: " + current.squares[winner[1]];
+        } else if(!current.squares.includes(null)) {
+           status = 'Draw'; 
+        } else {
+          status = "Next player: " + (this.state.xIsNext ? "X" : "O");
+        }
+        ...
+    }
+}
+```
