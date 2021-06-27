@@ -218,7 +218,7 @@ class Game extends React.Component {
 }
 ```
 
-## 3. When someone wins, highlight the three squares that caused the win.
+## 5. When someone wins, highlight the three squares that caused the win.
 
 In order to highlight squares which are populated by a text object (X or O) it seems reasonable that the best way to do that would be to change the color of the squares. In order to do that, we'll have to interact with the CSS files. So, in **index.css**, add the following class:
 
@@ -230,7 +230,34 @@ In order to highlight squares which are populated by a text object (X or O) it s
 
 The default implementation of **calculateWinner(squares)** as it is handed to us by the tutorial returns the value of one of the winning squares--that is, it returns either X or O and the status line in the **Game** component's **render()** function presents that text object as the winning player. Since the **calculateWinner(squares)** function already does the heavy lifting of determining when a player has won, there is no need to repeat the code done in that function. Instead, we will change the return value of the function so that it returns the indices of the winning squares. We can use these indices to apply the style we just added in the CSS file to the relevant squares, as well as to extract the character needed to report the winning player.
 
+We must be cautious to change every instance where **calculateWinner(squares)** is called, as we are changing the return value of that function and thus old true/false calls using it are now invalid without an index select. I used [1] rather than [0] because [0] can occasionally point to square 0. The same results could be achieved with [0]>=1 rather than my [1]>0.
+
+
 ```javascript
+class Game extends React.Component {
+    ...
+    handleClick(i) {
+        ...
+        if (calculateWinner(squares)[1]>0 || squares[i]) {
+          return;
+        }
+        ...
+    }
+    ...
+    render(){
+        ...
+        let status;
+        if (winner[1]>0) {
+          status = "Winner: " + current.squares(winner[1]);
+        } else {
+          status = "Next player: " + (this.state.xIsNext ? "X" : "O");
+        }
+        ...
+    }
+}
+
+...
+
 function calculateWinner(squares) {
   ...
   for (let i = 0; i < lines.length; i++) {
@@ -242,5 +269,51 @@ function calculateWinner(squares) {
   return [-1,-1,-1];
 }
 ```
+As an aside, I am surprised that **current.squares[winner[1]].value** is undefined, as that was my intial attempt at reading the value for reporting in the status. In retrospect, squares are evidently not objects that have properties... they are simply React objects that have "props," and the squares are reporting their value "prop" by means of {props.value}. I suspect I've stumbled across something fundamental to React and how it imitates/emulates OOP on HTML objects, but being able to spell it out explicitly is a bit beyond me currently.
 
+Finally, all we need do is apply our created CSS class to the winning squares. Since our **Game** component is already calling the **calculateWinner()** funciton and assigning it to a **winner** variable, I decided to take that output and push it down onto the **Board** component as a prop.
 
+```javascript
+class Game extends React.Component {
+    ...
+    render(
+    ...
+          <Board
+            squares={current.squares}
+            onClick={i => this.handleClick(i)}
+            winner={winner}
+          />
+    ...
+}
+```
+
+In **Board**, we can change the **renderSquare(i)** function to send a className prop to the **Square** component based on the output of **this.props.winner**. This tripped me up for a little while: Now that we are passing down a prop from **Board** to **Square**, it is important that we reflect that change in the **Square** component code. Previously, the className value was hardcoded in our **Square** component to be just "square", so if we do not change that hardcoded bit, then our new class won't be added to the HTML object, but I did not receive an error informing me that the className prop I was passing down was not being used.
+
+```javascript
+function Square(props) {
+  return (
+    <button className={props.className} onClick={props.onClick}>
+      {props.value}
+    </button>
+  );
+}
+
+class Board extends React.component {
+  renderSquare(i) {
+    let className = "square";
+    if (this.props.winner.includes(i)){
+        className += " winner";
+    }
+    return (
+      <Square
+        value={this.props.squares[i]}
+        key={i}
+        onClick={() => this.props.onClick(i)}
+        className={className}
+      />
+    );
+  }
+}
+```
+
+## 6. When no one wins, display a message about the result being a draw.
